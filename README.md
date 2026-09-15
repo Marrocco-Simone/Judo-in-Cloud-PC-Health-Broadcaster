@@ -144,17 +144,25 @@ Da compilare dopo la misura su una macchina reale.
 
 ## Permessi Deno con cui è compilato
 
-| Permesso        | Perché                                                                     |
-| --------------- | -------------------------------------------------------------------------- |
-| `--allow-net`   | socket UDP 47474 e pagina HTTP su 127.0.0.1                                |
-| `--allow-read`  | `/proc`, `/sys`, `/etc/os-release`, `pc-number.txt`, `peers.txt`           |
-| `--allow-write` | scrivere `pc-number.txt` accanto all'eseguibile o nella cartella di config |
-| `--allow-run`   | `ps`, `powershell`, `netsh`, `top`, apertura del browser                   |
-| `--allow-sys`   | nome host, memoria, interfacce di rete, versione del kernel                |
-| `--allow-env`   | `HOME`, `XDG_CONFIG_HOME`, `APPDATA` per la cartella di config             |
+L'eseguibile è compilato con `--allow-all`. Non è una scorciatoia: da Deno 2 la lettura di `/proc` e
+di `/sys` richiede il permesso totale e fallisce con `NotCapable: Requires all access` anche con
+`--allow-read` senza restrizioni o con `--allow-read=/proc,/sys`. Sono le due sorgenti di quasi
+tutta la telemetria Linux, quindi senza `--allow-all` su Linux restano solo hostname, RAM, OS,
+kernel e processi.
 
-`--allow-write` non è limitato a una cartella perché la cartella dell'eseguibile è nota solo a
-runtime; il codice scrive comunque un solo file (`pc-number.txt`).
+Quello che il programma usa davvero è questo:
+
+| Capacità        | Perché                                                                     |
+| --------------- | -------------------------------------------------------------------------- |
+| rete            | socket UDP 47474 e pagina HTTP su 127.0.0.1                                |
+| lettura         | `/proc`, `/sys`, `/etc/os-release`, `pc-number.txt`, `peers.txt`           |
+| scrittura       | scrivere `pc-number.txt` accanto all'eseguibile o nella cartella di config |
+| sottoprocessi   | `ps`, `powershell`, `netsh`, `top`, apertura del browser                   |
+| info di sistema | nome host, memoria, interfacce di rete, versione del kernel                |
+| ambiente        | `HOME`, `XDG_CONFIG_HOME`, `APPDATA` per la cartella di config             |
+
+La scrittura non è limitata a una cartella perché la cartella dell'eseguibile è nota solo a runtime;
+il codice scrive comunque un solo file (`pc-number.txt`).
 
 ## Sviluppo
 

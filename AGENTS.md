@@ -54,6 +54,10 @@ environment, not part of the fleet. The cycle is:
 
 - `readText` in `src/collectors/common.ts` returns `null` on any error. To see the real error, add a
   temporary `console.error` in its `catch`, and remove it before the commit.
+- Every task and every `compile:` target uses `--allow-all`. Deno 2 refuses `/proc` and `/sys` with
+  `NotCapable: Requires all access` under any narrower grant, `--allow-read` and
+  `--allow-read=/proc,/sys` included. Reintroducing the flag list silently empties the whole Linux
+  collector: only hostname, RAM, OS, kernel and `ps` survive.
 - Linux sources: `/proc/stat` (CPU), `/proc/cpuinfo` (CPU name), `/sys/devices/virtual/dmi/id/`
   (model), `/sys/block/*/size` and `queue/rotational` (storage), `/proc/net/dev` (network),
   `/proc/diskstats` (disk), `/proc/net/wireless` (wifi), `/sys/class/power_supply/*` (battery),

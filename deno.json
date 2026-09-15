@@ -1,15 +1,15 @@
 {
-  "version": "0.1.2",
+  "version": "0.1.3",
   "unstable": ["net"],
   "tasks": {
-    "dev": "deno run --allow-net --allow-read --allow-write --allow-run --allow-sys --allow-env src/main.ts",
+    "dev": "deno run --allow-all src/main.ts",
     "test": "deno test",
     "check": "deno fmt --check && deno lint && deno check src/main.ts",
     "version": "deno eval \"console.log(JSON.parse(Deno.readTextFileSync('deno.json')).version)\"",
-    "compile:win": "deno compile --icon assets/icon.ico --allow-net --allow-read --allow-write --allow-run --allow-sys --allow-env --target x86_64-pc-windows-msvc --output dist/pc-health-broadcaster-windows-x64.exe src/main.ts",
-    "compile:linux": "deno compile --allow-net --allow-read --allow-write --allow-run --allow-sys --allow-env --target x86_64-unknown-linux-gnu --output dist/pc-health-broadcaster-linux-x64 src/main.ts",
-    "compile:mac-arm": "deno compile --allow-net --allow-read --allow-write --allow-run --allow-sys --allow-env --target aarch64-apple-darwin --output dist/pc-health-broadcaster-macos-arm64 src/main.ts",
-    "compile:mac-x64": "deno compile --allow-net --allow-read --allow-write --allow-run --allow-sys --allow-env --target x86_64-apple-darwin --output dist/pc-health-broadcaster-macos-x64 src/main.ts"
+    "compile:win": "deno compile --icon assets/icon.ico --allow-all --target x86_64-pc-windows-msvc --output dist/pc-health-broadcaster-windows-x64.exe src/main.ts",
+    "compile:linux": "deno compile --allow-all --target x86_64-unknown-linux-gnu --output dist/pc-health-broadcaster-linux-x64 src/main.ts",
+    "compile:mac-arm": "deno compile --allow-all --target aarch64-apple-darwin --output dist/pc-health-broadcaster-macos-arm64 src/main.ts",
+    "compile:mac-x64": "deno compile --allow-all --target x86_64-apple-darwin --output dist/pc-health-broadcaster-macos-x64 src/main.ts"
   },
   "compilerOptions": {
     "strict": true,
