@@ -23,6 +23,9 @@ $o.cpu=@(Get-CimInstance Win32_PerfFormattedData_PerfOS_Processor | Select-Objec
 $o.bat=Get-CimInstance Win32_Battery | Select-Object -First 1 EstimatedChargeRemaining,BatteryStatus
 $o.net=@(Get-CimInstance Win32_PerfRawData_Tcpip_NetworkInterface | Select-Object BytesReceivedPersec,BytesSentPersec)
 $o.disk=Get-CimInstance Win32_PerfRawData_PerfDisk_PhysicalDisk -Filter "Name='_Total'" | Select-Object DiskReadBytesPersec,DiskWriteBytesPersec
+$o.temp=@(Get-CimInstance Win32_PerfFormattedData_Counters_ThermalZoneInformation | Select-Object Temperature)
+if ($o.temp.Count -eq 0) { $o.temp=@(Get-CimInstance -Namespace root\\WMI MSAcpi_ThermalZoneTemperature | Select-Object @{n='Temperature';e={$_.CurrentTemperature/10}}) }
+$o.wifi=(netsh wlan show interfaces | Select-String '%' | Select-Object -First 1).Line
 `;
 
 const PROCS_SCRIPT = `
@@ -45,6 +48,8 @@ interface RawTelemetry {
   bat?: unknown;
   net?: unknown;
   disk?: unknown;
+  temp?: unknown;
+  wifi?: unknown;
   procs?: unknown;
 }
 
@@ -89,7 +94,8 @@ export function createWindowsCollector(): Collector {
           return name === null || pct === null ? [] : [{ name, cpuPct: round1(pct / cores) }];
         });
       }
-      const wifiPct = wifiText === null ? null : Number(firstMatch(wifiText, /:\s*(\d+)%\s*$/m));
+      const wifiLine = wifiText ?? optString(raw.wifi);
+      const wifiPct = wifiLine === null ? null : Number(firstMatch(wifiLine, /:\s*(\d+)%\s*$/m));
       return {
         ...emptyTelemetry(),
         ...cpu(raw.cpu),
@@ -98,6 +104,7 @@ export function createWindowsCollector(): Collector {
         ...net(raw.net, now, rx, tx),
         ...disk(raw.disk, now, diskRead, diskWrite),
         wifiPct: Number.isFinite(wifiPct) ? wifiPct : null,
+        tempC: temperature(raw.temp),
         topProcs: lastProcs,
       };
     },
@@ -157,6 +164,19 @@ function disk(
     diskReadBps: r === null ? null : read.sample(r, now),
     diskWriteBps: w === null ? null : write.sample(w, now),
   };
+}
+
+/** Thermal zone counters report Kelvin; the hottest zone is the one that matters. */
+function temperature(raw: unknown): number | null {
+  if (!Array.isArray(raw)) return null;
+  let max: number | null = null;
+  for (const item of raw) {
+    if (!isRecord(item)) continue;
+    const kelvin = optNumber(item.Temperature);
+    if (kelvin === null || kelvin < 200) continue;
+    max = max === null ? kelvin : Math.max(max, kelvin);
+  }
+  return max === null ? null : round1(max - 273.15);
 }
 
 function parseJson(text: string | null): Record<string, unknown> | null {
