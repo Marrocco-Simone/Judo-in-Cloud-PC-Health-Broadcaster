@@ -47,7 +47,10 @@ Gli eseguibili sono prodotti automaticamente dalle GitHub Actions e pubblicati n
 - SmartScreen mostra "PC protetto da Windows": clicca **Ulteriori informazioni → Esegui comunque**.
   Il file non è firmato.
 - Al primo avvio il firewall chiede il consenso per la rete: clicca **Consenti** (rete privata).
-  Senza consenso il PC trasmette ma non riceve.
+- Su **Windows 11** il segnale wifi richiede i servizi di posizione attivi (Impostazioni → Privacy e
+  sicurezza → Posizione). Senza, `netsh` risponde "Accesso negato" e la colonna Wi-Fi resta vuota.
+  Windows 10 non ha questo vincolo. La temperatura dipende dal firmware del portatile: alcuni
+  modelli non la espongono. Senza consenso il PC trasmette ma non riceve.
 - Resta aperta una finestra nera: è normale. Chiuderla ferma il programma.
 
 **Ubuntu / Debian.** Con il `.deb`: `sudo apt install ./pc-health-broadcaster_<ver>_amd64.deb`, poi
