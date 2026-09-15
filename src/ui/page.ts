@@ -1,9 +1,12 @@
+import { FAVICON_DATA_URI } from "./icon.ts";
+
 export const PAGE = `<!doctype html>
 <html lang="it">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PC Health Broadcaster</title>
+<link rel="icon" type="image/png" href="${FAVICON_DATA_URI}">
 <style>
 :root{--bg:#0f1216;--panel:#171b21;--line:#262c35;--text:#e6e9ee;--muted:#8a93a3;--live:#3ddc84;--stale:#f5b942;--gone:#f25f5c;--accent:#5aa9ff}
 *{box-sizing:border-box}
@@ -39,7 +42,7 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
 </head>
 <body>
 <header>
-  <h1>PC Health Broadcaster <span class="self" id="self"></span></h1>
+  <h1>PC Health Broadcaster <span class="self" id="version"></span> <span class="self" id="self"></span></h1>
   <label>Gara <input id="session" placeholder="es. Lavis 2026"></label>
   <button id="csv">Scarica CSV sessione</button>
   <button id="copyAll">Copia tutte le specs</button>
@@ -144,6 +147,8 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
     if (!state) return;
     el('self').textContent = state.self.number ? '· PC ' + state.self.number + ' (' + state.self.hostname + ')' : '· numero non impostato';
     el('udpPort').textContent = state.udpPort;
+    el('version').textContent = 'v' + state.version;
+    document.title = 'PC Health Broadcaster v' + state.version;
     el('footer').textContent = 'v' + state.version + ' · UDP ' + state.udpPort + ' · pagina 127.0.0.1:' + state.uiPort +
       ' · destinatari: ' + state.targets.join(', ') + ' · beat in memoria: ' + state.historyCount;
     var machines = state.machines;

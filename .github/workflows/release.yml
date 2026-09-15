@@ -40,7 +40,8 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           PKG=deb/pc-health-broadcaster_${VERSION}_amd64
-          mkdir -p "$PKG/DEBIAN" "$PKG/usr/bin" "$PKG/usr/share/applications"
+          mkdir -p "$PKG/DEBIAN" "$PKG/usr/bin" "$PKG/usr/share/applications" "$PKG/usr/share/icons/hicolor/256x256/apps"
+          cp assets/icon.png "$PKG/usr/share/icons/hicolor/256x256/apps/pc-health-broadcaster.png"
           cp dist/pc-health-broadcaster-linux-x64 "$PKG/usr/bin/pc-health-broadcaster"
           chmod 755 "$PKG/usr/bin/pc-health-broadcaster"
           cat > "$PKG/DEBIAN/control" <<CONTROL
@@ -60,10 +61,20 @@ jobs:
           Name=PC Health Broadcaster
           Comment=Judo in Cloud PC health broadcaster
           Exec=/usr/bin/pc-health-broadcaster
+          Icon=pc-health-broadcaster
           Terminal=false
           Categories=Utility;System;
           DESKTOP
           dpkg-deb --build --root-owner-group "$PKG" dist/
+
+      - name: Put the version in the file names
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cd dist
+          for f in pc-health-broadcaster-*; do
+            mv "$f" "${f/pc-health-broadcaster-/pc-health-broadcaster-${VERSION}-}"
+          done
 
       - name: Checksums
         run: cd dist && sha256sum * > SHA256SUMS.txt

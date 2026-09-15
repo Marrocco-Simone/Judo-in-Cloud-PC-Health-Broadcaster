@@ -151,7 +151,7 @@ export function parsePsOutput(text: string): TopProcess[] {
     if (match === null) continue;
     const cpuPct = Number(match[1]?.replace(",", "."));
     const name = (match[2] ?? "").split("/").pop() ?? "";
-    if (!Number.isFinite(cpuPct) || name === "" || name === "ps") continue;
+    if (!Number.isFinite(cpuPct) || name === "") continue;
     out.push({ name: name.slice(0, 32), cpuPct });
     if (out.length === MAX_TOP_PROCESSES) break;
   }

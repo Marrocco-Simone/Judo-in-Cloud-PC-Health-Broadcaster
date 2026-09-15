@@ -42,6 +42,10 @@ async function main(): Promise<void> {
     console.log(HELP);
     return;
   }
+  if (args.version) {
+    console.log(VERSION);
+    return;
+  }
   const collector = createCollector();
   const host = hostname();
 

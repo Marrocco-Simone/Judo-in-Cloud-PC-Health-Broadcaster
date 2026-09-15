@@ -6,6 +6,7 @@ export interface Args {
   noUi: boolean;
   once: boolean;
   help: boolean;
+  version: boolean;
   number: string | null;
   peers: string[];
   port: number;
@@ -20,6 +21,7 @@ export const HELP = `pc-health-broadcaster [options]
   --peers=<a,b,c>   unicast every beat to these IPs too (added to peers.txt)
   --port=<n>        UDP port for broadcast and listening (default ${UDP_PORT})
   --ui-port=<n>     first port tried for the local web page (default ${UI_PORT})
+  --version         print the version, then exit
   --help            show this text
 `;
 
@@ -28,6 +30,7 @@ export function parseArgs(argv: string[]): Args {
     noUi: false,
     once: false,
     help: false,
+    version: false,
     number: null,
     peers: [],
     port: UDP_PORT,
@@ -45,6 +48,9 @@ export function parseArgs(argv: string[]): Args {
       case "--help":
       case "-h":
         args.help = true;
+        break;
+      case "--version":
+        args.version = true;
         break;
       case "--number":
         args.number = value.trim() || null;

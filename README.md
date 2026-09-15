@@ -30,13 +30,13 @@ Nessun server, nessun account, nessuna installazione, nessuna connessione a inte
 Gli eseguibili sono prodotti automaticamente dalle GitHub Actions e pubblicati nelle
 [Releases](../../releases/latest):
 
-| Sistema               | File                                    | Note                                    |
-| --------------------- | --------------------------------------- | --------------------------------------- |
-| Windows 10 (64 bit)   | `pc-health-broadcaster-windows-x64.exe` | doppio clic                             |
-| Ubuntu 24 / Debian    | `pc-health-broadcaster_<ver>_amd64.deb` | `sudo apt install ./pc-health-…deb`     |
-| Ubuntu 24 / Linux x64 | `pc-health-broadcaster-linux-x64`       | `chmod +x` e doppio clic o da terminale |
-| macOS Apple Silicon   | `pc-health-broadcaster-macos-arm64`     | solo sviluppo                           |
-| macOS Intel           | `pc-health-broadcaster-macos-x64`       | solo sviluppo                           |
+| Sistema               | File                                          | Note                                    |
+| --------------------- | --------------------------------------------- | --------------------------------------- |
+| Windows 10 (64 bit)   | `pc-health-broadcaster-<ver>-windows-x64.exe` | doppio clic                             |
+| Ubuntu 24 / Debian    | `pc-health-broadcaster_<ver>_amd64.deb`       | `sudo apt install ./pc-health-…deb`     |
+| Ubuntu 24 / Linux x64 | `pc-health-broadcaster-<ver>-linux-x64`       | `chmod +x` e doppio clic o da terminale |
+| macOS Apple Silicon   | `pc-health-broadcaster-<ver>-macos-arm64`     | solo sviluppo                           |
+| macOS Intel           | `pc-health-broadcaster-<ver>-macos-x64`       | solo sviluppo                           |
 
 `SHA256SUMS.txt` contiene le impronte dei file.
 
@@ -51,8 +51,9 @@ Gli eseguibili sono prodotti automaticamente dalle GitHub Actions e pubblicati n
 - Resta aperta una finestra nera: è normale. Chiuderla ferma il programma.
 
 **Ubuntu / Debian.** Con il `.deb`: `sudo apt install ./pc-health-broadcaster_<ver>_amd64.deb`, poi
-cerca "PC Health Broadcaster" nel menu. Con il binario: `chmod +x pc-health-broadcaster-linux-x64` e
-avvialo. Se il firewall `ufw` è attivo: `sudo ufw allow 47474/udp`.
+cerca "PC Health Broadcaster" nel menu. Con il binario:
+`chmod +x pc-health-broadcaster-<ver>-linux-x64` e avvialo. Se il firewall `ufw` è attivo:
+`sudo ufw allow 47474/udp`.
 
 **Primo avvio.** Si apre il browser su `http://127.0.0.1:47475/`. Se il numero non è ancora
 impostato, la pagina chiede il numero dell'etichetta e lo salva in `pc-number.txt`.
