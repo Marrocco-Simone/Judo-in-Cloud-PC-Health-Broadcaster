@@ -82,6 +82,7 @@ avvio.
 --peers=<a,b,c>   invia ogni beat anche a questi IP (in aggiunta a peers.txt)
 --port=<n>        porta UDP (default 47474)
 --ui-port=<n>     prima porta tentata per la pagina (default 47475)
+--version         stampa la versione ed esce
 --help
 ```
 
@@ -168,6 +169,20 @@ deno task compile:linux  # oppure compile:win, compile:mac-arm, compile:mac-x64
 
 La versione sta in `deno.json`. Ogni push su `main` compila i quattro target, costruisce il `.deb` e
 pubblica (o aggiorna) la release `v<versione>`. Le PR eseguono `ci.yml`.
+
+### Ciclo di test su una macchina reale
+
+I collector di Linux e Windows si verificano solo sul sistema operativo di destinazione. Il ciclo è:
+
+1. Modifica il codice e verifica con `deno task check` e `deno task test`.
+2. Alza il terzo numero della versione in `deno.json` (es. `0.1.2` → `0.1.3`).
+3. Committa e pusha su `main`: la release `v<versione>` compare dopo circa un minuto.
+4. Sul PC di prova scarica il file della nuova versione e controlla con `--version` che sia quella.
+5. `pc-health-broadcaster --once` stampa anagrafica e telemetria locali: un campo `null` è un
+   collector che non legge quel valore su quella macchina.
+
+Se un PC trasmette (gli altri lo vedono) ma non riceve (la sua pagina resta vuota), il firewall
+blocca l'ingresso UDP 47474. Su Ubuntu e Omarchy con `ufw` attivo: `sudo ufw allow 47474/udp`.
 
 ## Requisiti → implementazione
 

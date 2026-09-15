@@ -35,3 +35,34 @@ requirements document lives in the private `laptops/` folder of the owner and is
 - The UI listens on 127.0.0.1 only. Do not bind it to other interfaces.
 - Verify with `deno task check` and `deno test`. Compile with `deno task compile:<target>`.
 - Version lives in `deno.json`; the release workflow reads it and tags `v<version>`.
+
+## Testing on a real machine
+
+The Linux and Windows collectors can only be verified on that OS. macOS is a development
+environment, not part of the fleet. The cycle is:
+
+1. Change the code, run `deno task check` and `deno task test`.
+2. Bump the third number of `version` in `deno.json` (`0.1.2` → `0.1.3`). Every test on a real
+   machine needs a new release, because the machine downloads the compiled file.
+3. Commit and push to `main`. The Release workflow builds the four targets, the `.deb` and the
+   checksums, and publishes `v<version>` in about one minute.
+4. On the target machine, `pc-health-broadcaster --version` confirms the running version, and
+   `pc-health-broadcaster --once` prints local specs and telemetry as JSON. A `null` field is a
+   collector that cannot read that value on that machine: fix the collector, not the page.
+
+## Debugging a collector
+
+- `readText` in `src/collectors/common.ts` returns `null` on any error. To see the real error, add a
+  temporary `console.error` in its `catch`, and remove it before the commit.
+- Linux sources: `/proc/stat` (CPU), `/proc/cpuinfo` (CPU name), `/sys/devices/virtual/dmi/id/`
+  (model), `/sys/block/*/size` and `queue/rotational` (storage), `/proc/net/dev` (network),
+  `/proc/diskstats` (disk), `/proc/net/wireless` (wifi), `/sys/class/power_supply/*` (battery),
+  `/sys/class/thermal/thermal_zone0/temp`. Check them with `cat` before changing the parser.
+- Windows sources: one PowerShell call per beat with CIM performance counters,
+  `netsh wlan show
+  interfaces` for wifi. Counter names are locale independent; do not use
+  `typeperf`.
+- Rate values (network, disk, CPU) are `null` on the first beat by design: they need two samples.
+- Firewall: a PC that transmits but does not receive has inbound UDP 47474 blocked. Omarchy and some
+  Ubuntu installs enable `ufw` by default: `sudo ufw allow 47474/udp`. This is a documentation
+  matter, the app must not change firewall rules.
