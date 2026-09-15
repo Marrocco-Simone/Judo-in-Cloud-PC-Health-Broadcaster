@@ -27,9 +27,20 @@ export async function run(cmd: string, args: string[], timeoutMs = 8_000): Promi
   }
 }
 
+/** procfs and sysfs files report size 0, so read until EOF instead of trusting the size. */
 export async function readText(path: string): Promise<string | null> {
   try {
-    return await Deno.readTextFile(path);
+    using file = await Deno.open(path, { read: true });
+    const chunks: Uint8Array[] = [];
+    const buf = new Uint8Array(64 * 1024);
+    for (;;) {
+      const n = await file.read(buf);
+      if (n === null) break;
+      chunks.push(buf.slice(0, n));
+    }
+    let text = "";
+    for (const chunk of chunks) text += decoder.decode(chunk, { stream: true });
+    return text + decoder.decode();
   } catch {
     return null;
   }
@@ -77,7 +88,7 @@ export function memory(): { ramPct: number; ramUsedBytes: number } | null {
   try {
     const info = Deno.systemMemoryInfo();
     const total = info.total;
-    const available = info.available;
+    const available = info.available > 0 ? info.available : info.free;
     const used = total - available;
     return { ramPct: clampPct((100 * used) / total), ramUsedBytes: used };
   } catch {
@@ -140,7 +151,7 @@ export function parsePsOutput(text: string): TopProcess[] {
     if (match === null) continue;
     const cpuPct = Number(match[1]?.replace(",", "."));
     const name = (match[2] ?? "").split("/").pop() ?? "";
-    if (!Number.isFinite(cpuPct) || name === "") continue;
+    if (!Number.isFinite(cpuPct) || name === "" || name === "ps") continue;
     out.push({ name: name.slice(0, 32), cpuPct });
     if (out.length === MAX_TOP_PROCESSES) break;
   }
