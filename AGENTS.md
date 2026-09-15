@@ -65,7 +65,10 @@ environment, not part of the fleet. The cycle is:
 - Windows sources: one PowerShell call per beat with CIM performance counters,
   `netsh wlan show
   interfaces` for wifi. Counter names are locale independent; do not use
-  `typeperf`.
+  `typeperf`. On Windows 11 `netsh wlan` needs location services enabled; otherwise it prints
+  "access denied" and the wifi stays `null`. Windows 10 does not require this. Temperature comes
+  from the `ThermalZoneInformation` counters, then `MSAcpi_ThermalZoneTemperature`; some firmware
+  exposes neither.
 - Rate values (network, disk, CPU) are `null` on the first beat by design: they need two samples.
 - Firewall: a PC that transmits but does not receive has inbound UDP 47474 blocked. Omarchy and some
   Ubuntu installs enable `ufw` by default: `sudo ufw allow 47474/udp`. This is a documentation
