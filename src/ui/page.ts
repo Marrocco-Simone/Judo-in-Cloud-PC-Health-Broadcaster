@@ -75,6 +75,11 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
   var roles = load(ROLE_KEY, {});
   var state = null;
 
+  function pushRoles() {
+    fetch('/api/roles', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(roles) }).catch(function () {});
+  }
+  pushRoles();
+
   function load(key, fallback) {
     try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (e) { return fallback; }
   }
@@ -150,7 +155,7 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
     el('version').textContent = 'v' + state.version;
     document.title = 'PC Health Broadcaster v' + state.version;
     el('footer').textContent = 'v' + state.version + ' · UDP ' + state.udpPort + ' · pagina 127.0.0.1:' + state.uiPort +
-      ' · destinatari: ' + state.targets.join(', ') + ' · beat in memoria: ' + state.historyCount;
+      ' · destinatari: ' + state.targets.join(', ') + ' · beat in memoria: ' + state.historyCount + (state.recordPath ? ' · registrazione: ' + state.recordPath : '');
     var machines = state.machines;
     el('empty').classList.toggle('hidden', machines.length > 0);
     var dups = {};
@@ -195,6 +200,7 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
     entry[input.dataset.field] = input.value.trim();
     roles[input.dataset.number] = entry;
     save(ROLE_KEY, roles);
+    pushRoles();
     render();
   });
   el('rows').addEventListener('click', function (e) {

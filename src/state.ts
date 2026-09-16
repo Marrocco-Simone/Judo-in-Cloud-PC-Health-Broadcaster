@@ -13,6 +13,8 @@ export interface Machine {
   hostname: string;
   from: string;
   lastSeen: number;
+  /** sentAt of the last telemetry recorded: the same beat arrives once per broadcast target */
+  lastRecordedSentAt: number | null;
   specs: Specs | null;
   telemetry: Telemetry | null;
 }
@@ -43,8 +45,13 @@ export function machineKey(number: string, hostname: string): string {
 export class Fleet {
   private readonly machines = new Map<string, Machine>();
   private readonly entries: HistoryEntry[] = [];
+  private readonly listeners: ((entry: HistoryEntry) => void)[] = [];
 
   constructor(private readonly historyCap = DEFAULT_HISTORY_CAP) {}
+
+  onEntry(listener: (entry: HistoryEntry) => void): void {
+    this.listeners.push(listener);
+  }
 
   apply(packet: Packet, from: string, now = Date.now()): void {
     const key = machineKey(packet.number, packet.hostname);
@@ -54,6 +61,7 @@ export class Fleet {
       hostname: packet.hostname,
       from,
       lastSeen: now,
+      lastRecordedSentAt: null,
       specs: null,
       telemetry: null,
     };
@@ -61,8 +69,9 @@ export class Fleet {
     machine.from = from;
     if (packet.kind === "specs") {
       machine.specs = packet.specs;
-    } else {
+    } else if (packet.sentAt !== machine.lastRecordedSentAt) {
       machine.telemetry = packet.telemetry;
+      machine.lastRecordedSentAt = packet.sentAt;
       this.record({
         t: now,
         number: packet.number,
@@ -103,6 +112,7 @@ export class Fleet {
       this.entries.splice(0, Math.ceil(this.historyCap / 10));
     }
     this.entries.push(entry);
+    for (const listener of this.listeners) listener(entry);
   }
 }
 

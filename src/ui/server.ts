@@ -1,3 +1,4 @@
+import type { RoleEntry } from "../record.ts";
 import type { Fleet } from "../state.ts";
 import { PAGE } from "./page.ts";
 
@@ -8,6 +9,8 @@ export interface UiContext {
   targets: () => string[];
   self: () => { number: string | null; hostname: string };
   setNumber: (value: string) => string;
+  recordPath: () => string | null;
+  setRoles: (roles: Record<string, RoleEntry>) => void;
 }
 
 export const UI_PORT_ATTEMPTS = 10;
@@ -45,10 +48,20 @@ async function handle(req: Request, ctx: UiContext, uiPort: number): Promise<Res
       needsNumber: self.number === null,
       machines: ctx.fleet.snapshot(),
       historyCount: ctx.fleet.history.length,
+      recordPath: ctx.recordPath(),
     });
   }
   if (path === "/api/history") {
     return json(ctx.fleet.history);
+  }
+  if (path === "/api/roles" && req.method === "POST") {
+    try {
+      const body: unknown = await req.json();
+      ctx.setRoles(parseRoles(body));
+      return json({ ok: true });
+    } catch (err) {
+      return json({ ok: false, error: err instanceof Error ? err.message : String(err) }, 400);
+    }
   }
   if (path === "/api/number" && req.method === "POST") {
     try {
@@ -63,6 +76,20 @@ async function handle(req: Request, ctx: UiContext, uiPort: number): Promise<Res
     }
   }
   return new Response("not found", { status: 404 });
+}
+
+function parseRoles(body: unknown): Record<string, RoleEntry> {
+  const roles: Record<string, RoleEntry> = {};
+  if (typeof body !== "object" || body === null) return roles;
+  for (const [number, value] of Object.entries(body)) {
+    if (typeof value !== "object" || value === null) continue;
+    const { role, tatami } = value as Record<string, unknown>;
+    roles[number] = {
+      role: typeof role === "string" ? role.slice(0, 32) : "",
+      tatami: typeof tatami === "string" ? tatami.slice(0, 8) : "",
+    };
+  }
+  return roles;
 }
 
 function json(data: unknown, status = 200): Response {

@@ -17,4 +17,4 @@ jobs:
       - run: deno fmt --check
       - run: deno lint
       - run: deno check src/main.ts
-      - run: deno test
+      - run: deno task test

@@ -8,6 +8,7 @@ import { isValidNumber, readNumber, readPeersFile, writeNumber } from "./identit
 import { initialPhaseMs, nextDelayMs, Sender, SPECS_EVERY_BEATS } from "./net/broadcast.ts";
 import { openSocket, receiveLoop } from "./net/listen.ts";
 import { encodePacket, type Packet, PROTOCOL_VERSION } from "./net/protocol.ts";
+import { Recorder } from "./record.ts";
 import { Fleet } from "./state.ts";
 import { openBrowser, startUi } from "./ui/server.ts";
 
@@ -78,6 +79,18 @@ async function main(): Promise<void> {
   }
 
   const fleet = new Fleet();
+  const recorder = args.record === null ? null : new Recorder(args.record);
+  if (recorder !== null) {
+    fleet.onEntry((entry) => recorder.add(entry));
+    console.log(`registrazione CSV: ${recorder.path}`);
+    for (const signal of ["SIGINT", "SIGTERM"] as const) {
+      try {
+        Deno.addSignalListener(signal, () => void recorder.close().finally(() => Deno.exit(0)));
+      } catch {
+        // not supported on this platform
+      }
+    }
+  }
   const peers = [...new Set([...readPeersFile(), ...args.peers])];
   const conn = openSocket(args.port);
   const sender = new Sender(conn, args.port, peers);
@@ -93,6 +106,10 @@ async function main(): Promise<void> {
       udpPort: args.port,
       targets: () => sender.targets(),
       self: () => ({ number, hostname: host }),
+      recordPath: () => recorder?.path ?? null,
+      setRoles: (roles) => {
+        if (recorder !== null) recorder.roles = roles;
+      },
       setNumber: (value) => {
         const path = writeNumber(value);
         number = value;

@@ -1,9 +1,9 @@
 {
-  "version": "0.1.4",
+  "version": "0.1.5",
   "unstable": ["net"],
   "tasks": {
     "dev": "deno run --allow-all src/main.ts",
-    "test": "deno test",
+    "test": "deno test --allow-read --allow-write",
     "check": "deno fmt --check && deno lint && deno check src/main.ts",
     "version": "deno eval \"console.log(JSON.parse(Deno.readTextFileSync('deno.json')).version)\"",
     "compile:win": "deno compile --icon assets/icon.ico --allow-all --target x86_64-pc-windows-msvc --output dist/pc-health-broadcaster-windows-x64.exe src/main.ts",

@@ -19,9 +19,20 @@ const telemetry: Telemetry = {
   topProcs: null,
 };
 
-function beat(number: string, hostname: string): Packet {
-  return { v: 1, kind: "telemetry", number, hostname, sentAt: 0, telemetry };
+let sent = 0;
+function beat(number: string, hostname: string, sentAt = ++sent): Packet {
+  return { v: 1, kind: "telemetry", number, hostname, sentAt, telemetry };
 }
+
+Deno.test("the same beat received from several targets is recorded once", () => {
+  const fleet = new Fleet(20);
+  const packet = beat("4", "pc4", 12345);
+  fleet.apply(packet, "local", 0);
+  fleet.apply(packet, "10.0.0.4", 1);
+  fleet.apply(packet, "10.0.0.4", 2);
+  assertEquals(fleet.history.length, 1);
+  assertEquals(fleet.snapshot(2)[0]?.sinceLastBeat, 0);
+});
 
 Deno.test("statusFor transitions at the stale and gone thresholds", () => {
   assertEquals(statusFor(0), "live");

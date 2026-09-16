@@ -11,6 +11,8 @@ export interface Args {
   peers: string[];
   port: number;
   uiPort: number;
+  /** null: off; "": default file next to the executable; otherwise the file path */
+  record: string | null;
 }
 
 export const HELP = `pc-health-broadcaster [options]
@@ -21,6 +23,8 @@ export const HELP = `pc-health-broadcaster [options]
   --peers=<a,b,c>   unicast every beat to these IPs too (added to peers.txt)
   --port=<n>        UDP port for broadcast and listening (default ${UDP_PORT})
   --ui-port=<n>     first port tried for the local web page (default ${UI_PORT})
+  --record[=<file>] append every received beat to a CSV file (default pc-health_<date>.csv
+                    next to the executable); use it on the control machine only
   --version         print the version, then exit
   --help            show this text
 `;
@@ -35,6 +39,7 @@ export function parseArgs(argv: string[]): Args {
     peers: [],
     port: UDP_PORT,
     uiPort: UI_PORT,
+    record: null,
   };
   for (const arg of argv) {
     const [flag, value = ""] = splitFlag(arg);
@@ -60,6 +65,9 @@ export function parseArgs(argv: string[]): Args {
         break;
       case "--port":
         args.port = parsePort(value) ?? args.port;
+        break;
+      case "--record":
+        args.record = value.trim();
         break;
       case "--ui-port":
         args.uiPort = parsePort(value) ?? args.uiPort;

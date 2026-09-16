@@ -85,6 +85,8 @@ avvio.
 --peers=<a,b,c>   invia ogni beat anche a questi IP (in aggiunta a peers.txt)
 --port=<n>        porta UDP (default 47474)
 --ui-port=<n>     prima porta tentata per la pagina (default 47475)
+--record[=<file>] registra ogni beat ricevuto in un file CSV (default pc-health_<data>.csv
+                  accanto all'eseguibile); solo sulla macchina di controllo
 --version         stampa la versione ed esce
 --help
 ```
@@ -114,10 +116,24 @@ beat, stato. Se due PC dichiarano lo stesso numero compare un avviso rosso (D8).
 - **Copia specs** copia in appunti un blocco di testo con anagrafica del PC, pronto da incollare
   nella pagina inventario dell'admin di Judo in Cloud (righe vuote per stato care system, porte e
   note). **Copia tutte le specs** fa lo stesso per tutte le macchine.
-- **Scarica CSV sessione** esporta la telemetria ricevuta da quando la pagina è aperta, con ruolo e
-  tatami. Il nome del file usa il campo "Gara" (es. `pc-health_Lavis_2026_2026-10-10.csv`). Lo
-  storico sta in memoria (max 50 000 beat) solo sulla macchina di cui apri la pagina (D6); nessuna
-  scrittura su disco.
+- **Scarica CSV sessione** esporta la telemetria che il processo ha in memoria, con ruolo e tatami.
+  Il nome del file usa il campo "Gara" (es. `pc-health_Lavis_2026_2026-10-10.csv`).
+
+## Registrazione di una gara (RF-8)
+
+Ogni processo tiene in memoria gli ultimi 50 000 beat ricevuti, con o senza pagina aperta: chiudere
+la scheda del browser non ferma né la trasmissione né la ricezione. Sedici PC per otto ore superano
+quel limite, e la memoria si perde alla chiusura. Sulla **macchina di controllo** avvia quindi con
+`--record`:
+
+```
+pc-health-broadcaster --record=lavis-2026.csv
+```
+
+Ogni beat ricevuto viene aggiunto al file in blocchi ogni 30 secondi (poche decine di KB l'ora); il
+file riporta anche ruolo e tatami inseriti nella pagina. L'intestazione è scritta solo se il file è
+vuoto, quindi si può riprendere lo stesso file dopo un riavvio. Il percorso compare nel piè di
+pagina. Senza `--record` l'app non scrive nulla su disco (D6): usalo solo sul PC da cui guardi.
 
 ## Impatto sulla macchina (RN-1)
 

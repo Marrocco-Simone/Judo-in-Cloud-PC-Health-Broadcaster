@@ -18,7 +18,10 @@ requirements document lives in the private `laptops/` folder of the owner and is
   returns `null` for a value it cannot read; a collector never throws out of `telemetry()`.
 - `src/net/protocol.ts` — packet types, strict parser, size cap. `broadcast.ts` — interval
   randomization and sender. `listen.ts` — UDP socket and receive loop.
-- `src/state.ts` — fleet table, live/stale/gone, duplicate numbers, bounded history.
+- `src/state.ts` — fleet table, live/stale/gone, duplicate numbers, bounded history, `onEntry`
+  listeners. The same beat arrives once per broadcast target; `lastRecordedSentAt` dedupes it.
+- `src/record.ts` — `--record`: appends received beats to a CSV file in 30 s batches. The only disk
+  write besides `pc-number.txt`, meant for the control machine.
 - `src/ui/server.ts` — local HTTP on 127.0.0.1. `src/ui/page.ts` — the whole page as a string.
 - `src/*_test.ts` — unit tests, run with `deno test`.
 
@@ -31,7 +34,8 @@ requirements document lives in the private `laptops/` folder of the owner and is
 - Never transmit credentials, athlete names, file paths or anything the receiver could execute.
   Incoming packets are parsed as telemetry only.
 - Telemetry collection runs once per beat (10 s ± 3 s). Do not add polling faster than the beat and
-  do not add continuous disk writes. The only file the app writes is `pc-number.txt`.
+  do not add continuous disk writes. Without `--record` the only file the app writes is
+  `pc-number.txt`.
 - The UI listens on 127.0.0.1 only. Do not bind it to other interfaces.
 - Verify with `deno task check` and `deno test`. Compile with `deno task compile:<target>`.
 - Version lives in `deno.json`; the release workflow reads it and tags `v<version>`.

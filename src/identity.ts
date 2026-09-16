@@ -38,7 +38,7 @@ export function dataDirs(): string[] {
   return dirs;
 }
 
-function join(dir: string, file: string): string {
+export function joinPath(dir: string, file: string): string {
   const sep = Deno.build.os === "windows" ? "\\" : "/";
   return `${dir}${sep}${file}`;
 }
@@ -46,7 +46,7 @@ function join(dir: string, file: string): string {
 function readFirst(file: string): string | null {
   for (const dir of dataDirs()) {
     try {
-      return Deno.readTextFileSync(join(dir, file));
+      return Deno.readTextFileSync(joinPath(dir, file));
     } catch {
       continue;
     }
@@ -65,7 +65,7 @@ export function writeNumber(value: string): string {
   for (const dir of dataDirs()) {
     try {
       Deno.mkdirSync(dir, { recursive: true });
-      const path = join(dir, NUMBER_FILE);
+      const path = joinPath(dir, NUMBER_FILE);
       Deno.writeTextFileSync(path, `${value}\n`);
       return path;
     } catch (err) {
