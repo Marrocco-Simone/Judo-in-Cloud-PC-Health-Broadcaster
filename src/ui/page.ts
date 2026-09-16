@@ -21,6 +21,7 @@ main{padding:12px 16px;overflow-x:auto}
 table{border-collapse:collapse;width:100%;min-width:1100px}
 th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
 th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+th[data-sort]{cursor:pointer;user-select:none}th[data-sort]:hover{color:var(--text)}th.sorted{color:var(--accent)}
 td.num{font-variant-numeric:tabular-nums;text-align:right}
 tr.stale td{color:var(--stale)}tr.gone td{color:var(--muted)}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
@@ -52,8 +53,8 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
 <main>
   <table>
     <thead><tr>
-      <th>N.</th><th>Host</th><th>Ruolo</th><th>Tatami</th><th>CPU</th><th>RAM</th><th>Batteria</th><th>Wi-Fi</th>
-      <th>Rete ↓ / ↑</th><th>Disco R / W</th><th>Top processo</th><th>Ultimo beat</th><th>Stato</th><th></th>
+      <th data-sort="number">N.</th><th data-sort="hostname">Host</th><th data-sort="role">Ruolo</th><th data-sort="tatami">Tatami</th><th data-sort="cpu">CPU</th><th data-sort="ram">RAM</th><th data-sort="battery">Batteria</th><th data-sort="wifi">Wi-Fi</th>
+      <th data-sort="net">Rete ↓ / ↑</th><th data-sort="disk">Disco R / W</th><th data-sort="top">Top processo</th><th data-sort="beat">Ultimo beat</th><th data-sort="status">Stato</th><th></th>
     </tr></thead>
     <tbody id="rows"></tbody>
   </table>
@@ -94,9 +95,9 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
     });
   }
   function pct(v) { return v === null || v === undefined ? '—' : Math.round(v) + '%'; }
-  function bar(v) {
+  function bar(v, lowIsBad) {
     if (v === null || v === undefined) return '—';
-    var cls = v >= 90 ? ' hot' : v >= 70 ? ' warn' : '';
+    var cls = lowIsBad ? (v <= 15 ? ' hot' : v <= 30 ? ' warn' : '') : (v >= 90 ? ' hot' : v >= 70 ? ' warn' : '');
     return '<span class="bar' + cls + '"><i style="width:' + Math.min(100, v) + '%"></i></span>' + Math.round(v) + '%';
   }
   function bps(v) {
@@ -116,6 +117,50 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
     }
     return text + '</span>';
   }
+  var SORT_KEY = 'phb.sort';
+  var sort = load(SORT_KEY, { key: 'number', dir: 1 });
+  var STATUS_RANK = { live: 0, stale: 1, gone: 2 };
+  function sortValue(m) {
+    var t = m.telemetry || {};
+    var r = role(m);
+    var v = {
+      number: m.number, hostname: m.hostname, role: r.role, tatami: Number(r.tatami) || null,
+      cpu: t.cpuPct, ram: t.ramPct, battery: t.batteryPct, wifi: t.wifiPct,
+      net: t.netRxBps === null || t.netRxBps === undefined ? null : t.netRxBps + (t.netTxBps || 0),
+      disk: t.diskReadBps === null || t.diskReadBps === undefined ? null : t.diskReadBps + (t.diskWriteBps || 0),
+      top: t.topProcs && t.topProcs[0] ? t.topProcs[0].cpuPct : null,
+      beat: m.sinceLastBeat, status: STATUS_RANK[m.status]
+    }[sort.key];
+    return v === undefined || v === '' ? null : v;
+  }
+  function sorted(machines) {
+    var collator = new Intl.Collator('it', { numeric: true });
+    return machines.slice().sort(function (a, b) {
+      var va = sortValue(a), vb = sortValue(b);
+      if (va === null && vb === null) return collator.compare(a.number, b.number);
+      if (va === null) return 1;
+      if (vb === null) return -1;
+      var c = typeof va === 'number' && typeof vb === 'number' ? va - vb : collator.compare(String(va), String(vb));
+      return c === 0 ? collator.compare(a.number, b.number) : c * sort.dir;
+    });
+  }
+  function renderSortMarks() {
+    document.querySelectorAll('th[data-sort]').forEach(function (th) {
+      var on = th.dataset.sort === sort.key;
+      th.classList.toggle('sorted', on);
+      th.textContent = th.textContent.replace(/ [▲▼]$/, '') + (on ? (sort.dir === 1 ? ' ▲' : ' ▼') : '');
+    });
+  }
+  document.querySelector('thead').addEventListener('click', function (e) {
+    var th = e.target.closest('th[data-sort]');
+    if (!th) return;
+    sort = th.dataset.sort === sort.key ? { key: sort.key, dir: -sort.dir } : { key: th.dataset.sort, dir: 1 };
+    save(SORT_KEY, sort);
+    renderSortMarks();
+    render();
+  });
+  renderSortMarks();
+
   function role(m) { return roles[m.number] || { role: '', tatami: '' }; }
   function label(m) {
     var r = role(m);
@@ -167,7 +212,7 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
     document.title = 'PC Health Broadcaster v' + state.version;
     el('footer').textContent = 'v' + state.version + ' · UDP ' + state.udpPort + ' · pagina 127.0.0.1:' + state.uiPort +
       ' · destinatari: ' + state.targets.join(', ') + ' · beat in memoria: ' + state.historyCount + (state.recordPath ? ' · registrazione: ' + state.recordPath : '');
-    var machines = state.machines;
+    var machines = sorted(state.machines);
     el('empty').classList.toggle('hidden', machines.length > 0);
     var dups = {};
     machines.forEach(function (m) { if (m.duplicate) dups[m.number] = true; });
@@ -179,7 +224,7 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
     el('rows').innerHTML = machines.map(function (m) {
       var t = m.telemetry || {};
       var r = role(m);
-      var batt = t.batteryPct === null || t.batteryPct === undefined ? '—' : pct(t.batteryPct) + (t.power === 'ac' ? ' ⚡' : t.power === 'battery' ? ' 🔋' : '') + batteryTrend(m, t);
+      var batt = t.batteryPct === null || t.batteryPct === undefined ? '—' : bar(t.batteryPct, true) + (t.power === 'ac' ? ' ⚡' : t.power === 'battery' ? ' 🔋' : '') + batteryTrend(m, t);
       var wifi = t.wifiPct === null || t.wifiPct === undefined ? '—' : pct(t.wifiPct) + (t.wifiDbm !== null && t.wifiDbm !== undefined ? ' (' + t.wifiDbm + ' dBm)' : '');
       return '<tr class="' + m.status + '">' +
         '<td' + (m.duplicate ? ' class="dup" title="numero duplicato"' : '') + '>' + esc(m.number) + (m.duplicate ? ' ⚠' : '') + '</td>' +
