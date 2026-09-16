@@ -4,6 +4,8 @@ export const STALE_MS = 30_000;
 export const GONE_MS = 120_000;
 export const DROP_MS = 3_600_000;
 export const DEFAULT_HISTORY_CAP = 50_000;
+export const BATTERY_WINDOW_MS = 3_600_000;
+export const BATTERY_MIN_SPAN_MS = 300_000;
 
 export type Status = "live" | "stale" | "gone";
 
@@ -15,6 +17,8 @@ export interface Machine {
   lastSeen: number;
   /** sentAt of the last telemetry recorded: the same beat arrives once per broadcast target */
   lastRecordedSentAt: number | null;
+  /** battery readings of the last hour, oldest first, reset when the power source changes */
+  batterySamples: { t: number; pct: number }[];
   specs: Specs | null;
   telemetry: Telemetry | null;
 }
@@ -23,6 +27,8 @@ export interface MachineView extends Machine {
   status: Status;
   sinceLastBeat: number;
   duplicate: boolean;
+  /** percent points per hour, negative while discharging; null before 5 minutes of samples */
+  batteryRatePctPerHour: number | null;
 }
 
 export interface HistoryEntry {
@@ -62,6 +68,7 @@ export class Fleet {
       from,
       lastSeen: now,
       lastRecordedSentAt: null,
+      batterySamples: [],
       specs: null,
       telemetry: null,
     };
@@ -70,6 +77,13 @@ export class Fleet {
     if (packet.kind === "specs") {
       machine.specs = packet.specs;
     } else if (packet.sentAt !== machine.lastRecordedSentAt) {
+      if (machine.telemetry?.power !== packet.telemetry.power) machine.batterySamples = [];
+      if (packet.telemetry.batteryPct !== null) {
+        machine.batterySamples.push({ t: now, pct: packet.telemetry.batteryPct });
+        while ((machine.batterySamples[0]?.t ?? now) < now - BATTERY_WINDOW_MS) {
+          machine.batterySamples.shift();
+        }
+      }
       machine.telemetry = packet.telemetry;
       machine.lastRecordedSentAt = packet.sentAt;
       this.record({
@@ -98,6 +112,7 @@ export class Fleet {
         status: statusFor(now - m.lastSeen),
         sinceLastBeat: Math.max(0, Math.round((now - m.lastSeen) / 1000)),
         duplicate: (hostsByNumber.get(m.number)?.size ?? 0) > 1,
+        batteryRatePctPerHour: batteryRate(m.batterySamples),
       }))
       .sort(byNumber);
   }
@@ -114,6 +129,15 @@ export class Fleet {
     this.entries.push(entry);
     for (const listener of this.listeners) listener(entry);
   }
+}
+
+export function batteryRate(samples: readonly { t: number; pct: number }[]): number | null {
+  const first = samples[0];
+  const last = samples[samples.length - 1];
+  if (first === undefined || last === undefined || last.t - first.t < BATTERY_MIN_SPAN_MS) {
+    return null;
+  }
+  return Math.round(((last.pct - first.pct) * 3_600_000) / (last.t - first.t) * 10) / 10;
 }
 
 function byNumber(a: MachineView, b: MachineView): number {

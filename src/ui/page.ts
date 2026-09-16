@@ -37,6 +37,7 @@ tr.stale td{color:var(--stale)}tr.gone td{color:var(--muted)}
 dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:20px;max-width:420px}
 dialog::backdrop{background:rgba(0,0,0,.6)}
 footer{padding:12px 16px;color:var(--muted);font-size:12px}
+.muted{color:var(--muted);font-size:12px}
 pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:1px solid var(--accent);padding:8px 12px;border-radius:6px;margin:0}
 </style>
 </head>
@@ -105,6 +106,16 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
     return v + ' B/s';
   }
   function gb(bytes) { return bytes === null || bytes === undefined ? '?' : Math.round(bytes / 1073741824) + ' GB'; }
+  function batteryTrend(m, t) {
+    var rate = m.batteryRatePctPerHour;
+    if (rate === null || rate === undefined || rate === 0) return '';
+    var text = ' <span class="muted">' + (rate > 0 ? '+' : '') + rate + '%/h';
+    if (rate < 0) {
+      var hours = t.batteryPct / -rate;
+      text += ' · ' + (hours >= 1 ? Math.floor(hours) + 'h' + ('0' + Math.round((hours % 1) * 60)).slice(-2) : Math.round(hours * 60) + ' min');
+    }
+    return text + '</span>';
+  }
   function role(m) { return roles[m.number] || { role: '', tatami: '' }; }
   function label(m) {
     var r = role(m);
@@ -168,7 +179,7 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
     el('rows').innerHTML = machines.map(function (m) {
       var t = m.telemetry || {};
       var r = role(m);
-      var batt = t.batteryPct === null || t.batteryPct === undefined ? '—' : pct(t.batteryPct) + (t.power === 'ac' ? ' ⚡' : t.power === 'battery' ? ' 🔋' : '');
+      var batt = t.batteryPct === null || t.batteryPct === undefined ? '—' : pct(t.batteryPct) + (t.power === 'ac' ? ' ⚡' : t.power === 'battery' ? ' 🔋' : '') + batteryTrend(m, t);
       var wifi = t.wifiPct === null || t.wifiPct === undefined ? '—' : pct(t.wifiPct) + (t.wifiDbm !== null && t.wifiDbm !== undefined ? ' (' + t.wifiDbm + ' dBm)' : '');
       return '<tr class="' + m.status + '">' +
         '<td' + (m.duplicate ? ' class="dup" title="numero duplicato"' : '') + '>' + esc(m.number) + (m.duplicate ? ' ⚠' : '') + '</td>' +

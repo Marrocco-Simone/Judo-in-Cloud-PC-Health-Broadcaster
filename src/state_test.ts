@@ -1,6 +1,6 @@
 import { assertEquals } from "jsr:@std/assert@1";
 import type { Packet, Telemetry } from "./net/protocol.ts";
-import { DROP_MS, Fleet, GONE_MS, STALE_MS, statusFor } from "./state.ts";
+import { batteryRate, DROP_MS, Fleet, GONE_MS, STALE_MS, statusFor } from "./state.ts";
 
 const telemetry: Telemetry = {
   cpuPct: 10,
@@ -106,4 +106,10 @@ Deno.test("snapshot sorts by numeric label", () => {
   const fleet = new Fleet();
   for (const n of ["10", "2", "1", "22"]) fleet.apply(beat(n, `pc${n}`), "x", 0);
   assertEquals(fleet.snapshot(0).map((m) => m.number), ["1", "2", "10", "22"]);
+});
+
+Deno.test("batteryRate needs five minutes of samples and reports points per hour", () => {
+  assertEquals(batteryRate([{ t: 0, pct: 90 }, { t: 60_000, pct: 89 }]), null);
+  assertEquals(batteryRate([{ t: 0, pct: 90 }, { t: 1_800_000, pct: 84 }]), -12);
+  assertEquals(batteryRate([{ t: 0, pct: 50 }, { t: 3_600_000, pct: 65.5 }]), 15.5);
 });
