@@ -112,7 +112,9 @@ Ogni PC ha la sua pagina; apri quella del PC da cui vuoi controllare. Mostra per
 numero, host, ruolo e tatami (campi che compili tu, salvati nel browser di quel PC), CPU, RAM,
 batteria con velocità di scarica in punti/ora e autonomia stimata (dopo 5 minuti di campioni), wifi,
 rete ↓/↑, disco R/W, processo più pesante (OBS evidenziato), secondi dall'ultimo beat, stato. Se due
-PC dichiarano lo stesso numero compare un avviso rosso (D8).
+PC dichiarano lo stesso numero compare un avviso rosso (D8). Un clic sull'intestazione di una
+colonna ordina la tabella per quella colonna; un secondo clic inverte l'ordine. La scelta resta
+salvata nel browser.
 
 - **Copia specs** copia in appunti un blocco di testo con anagrafica del PC, pronto da incollare
   nella pagina inventario dell'admin di Judo in Cloud (righe vuote per stato care system, porte e
