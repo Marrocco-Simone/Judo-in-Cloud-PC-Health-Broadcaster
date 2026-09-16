@@ -29,7 +29,7 @@ $o.wifi=(netsh wlan show interfaces | Select-String '%' | Select-Object -First 1
 `;
 
 const PROCS_SCRIPT = `
-$o.procs=@(Get-CimInstance Win32_PerfFormattedData_PerfProc_Process | Where-Object { $_.Name -ne '_Total' -and $_.Name -ne 'Idle' } | Sort-Object PercentProcessorTime -Descending | Select-Object -First ${MAX_TOP_PROCESSES} Name,PercentProcessorTime)
+$o.procs=@(Get-CimInstance Win32_PerfFormattedData_PerfProc_Process | Where-Object { $_.Name -ne '_Total' -and $_.Name -ne 'Idle' } | Group-Object { $_.Name -replace '#\\d+$','' } | ForEach-Object { [pscustomobject]@{Name=$_.Name;PercentProcessorTime=($_.Group | Measure-Object PercentProcessorTime -Sum).Sum} } | Sort-Object PercentProcessorTime -Descending | Select-Object -First ${MAX_TOP_PROCESSES} Name,PercentProcessorTime)
 `;
 
 const EMIT = `$o | ConvertTo-Json -Compress -Depth 3`;
