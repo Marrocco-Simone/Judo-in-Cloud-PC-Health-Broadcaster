@@ -151,7 +151,8 @@ export function parsePsOutput(text: string): TopProcess[] {
     if (match === null) continue;
     const cpuPct = Number(match[1]?.replace(",", "."));
     const name = (match[2] ?? "").split("/").pop() ?? "";
-    if (!Number.isFinite(cpuPct) || name === "") continue;
+    // the ps of this beat is milliseconds old, so its lifetime average reads hundreds of percent
+    if (!Number.isFinite(cpuPct) || name === "" || name === "ps") continue;
     out.push({ name: name.slice(0, 32), cpuPct });
     if (out.length === MAX_TOP_PROCESSES) break;
   }
