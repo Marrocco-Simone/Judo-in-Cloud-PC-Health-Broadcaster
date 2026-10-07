@@ -183,7 +183,7 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
   var CARE_FIELDS = ${JSON.stringify(CARE_FIELDS)};
   var CSV_HEADER = ${JSON.stringify(CSV_HEADER)};
   function careDown(c) {
-    return c.age > CARE_STALE_S || c.chunkAge === null || c.chunkAge > CARE_CHUNK_ALARM_S;
+    return c.age > CARE_STALE_S || c.chunkAge === null || c.chunkAge - c.age > CARE_CHUNK_ALARM_S;
   }
   function ago(s) {
     if (s < 120) return s + ' s';
@@ -196,7 +196,7 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
     if (!c) return '—';
     if (c.age > CARE_STALE_S) return flag('bad', 'non attivo da ' + ago(c.age));
     if (c.chunkAge === null) return flag('bad', 'nessun chunk salvato');
-    if (c.chunkAge > CARE_CHUNK_ALARM_S) return flag('bad', 'ferma da ' + c.chunkAge + ' s');
+    if (c.chunkAge - c.age > CARE_CHUNK_ALARM_S) return flag('bad', 'ferma da ' + c.chunkAge + ' s');
     var parts = [c.kbps === null ? 'rec' : c.kbps + ' kbps'];
     if (c.storeErr) parts.push(flag('bad', c.storeErr + ' errori'));
     if (c.cam && c.cam !== 'live') parts.push(flag('bad', 'camera ' + c.cam));

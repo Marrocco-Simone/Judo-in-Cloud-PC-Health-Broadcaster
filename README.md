@@ -138,11 +138,11 @@ Il broadcaster legge il file a ogni beat e lo aggiunge alla telemetria (campo `c
 colonna resta vuota: il CARE System non è mai stato aperto nell'app Electron su quel PC (la versione
 nel browser non scrive file). I valori "al minuto" si riferiscono all'ultimo minuto completo.
 
-| Colonna            | Contenuto                                                                                                                                                                                                   |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Care registrazione | bitrate salvato, errori di salvataggio in IndexedDB, stato della camera, risoluzione e fps, eventi mute/ended della camera. **Rosso** se nessun chunk è salvato da più di 10 s o se il file ha più di 120 s |
-| Care player        | ritardo medio dal vivo ("revisione" mentre l'arbitro rivede), frame persi %, ritardo massimo del thread principale                                                                                          |
-| Care app           | CPU (percento dell'intera macchina) e memoria di tutti i processi dell'app, stato dello stream e upload falliti, "no H.264 HW" se il PC non ha l'encoder hardware, spazio libero, versione                  |
+| Colonna            | Contenuto                                                                                                                                                                                                                                      |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Care registrazione | bitrate salvato, errori di salvataggio in IndexedDB, stato della camera, risoluzione e fps, eventi mute/ended della camera. **Rosso** se, all'ultima scrittura del file, nessun chunk era salvato da più di 10 s, o se il file ha più di 120 s |
+| Care player        | ritardo medio dal vivo ("revisione" mentre l'arbitro rivede), frame persi %, ritardo massimo del thread principale                                                                                                                             |
+| Care app           | CPU (percento dell'intera macchina) e memoria di tutti i processi dell'app, stato dello stream e upload falliti, "no H.264 HW" se il PC non ha l'encoder hardware, spazio libero, versione                                                     |
 
 ## Registrazione di una gara (RF-8)
 

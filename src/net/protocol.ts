@@ -24,7 +24,7 @@ export interface TopProcess {
 
 export type PowerSource = "battery" | "ac";
 
-/** seconds without a stored chunk before the page shows the recording as stopped */
+/** seconds without a stored chunk, when the app last wrote the file, before the page shows the recording as stopped */
 export const CARE_CHUNK_ALARM_S = 10;
 /** seconds without a new care-status.json before the page shows the care system as not running */
 export const CARE_STALE_S = 120;
