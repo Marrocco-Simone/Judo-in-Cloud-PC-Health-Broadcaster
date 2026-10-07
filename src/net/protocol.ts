@@ -24,6 +24,52 @@ export interface TopProcess {
 
 export type PowerSource = "battery" | "ac";
 
+/** seconds without a stored chunk before the page shows the recording as stopped */
+export const CARE_CHUNK_ALARM_S = 10;
+/** seconds without a new care-status.json before the page shows the care system as not running */
+export const CARE_STALE_S = 120;
+
+export type CameraState = "live" | "muted" | "ended";
+export type StreamState = "idle" | "connecting" | "live";
+
+/** State of the care system on this PC, from the care-status.json of the Electron app */
+export interface CareStatus {
+  /** seconds since the app wrote the file */
+  age: number;
+  ver: string | null;
+  /** app uptime, seconds */
+  up: number | null;
+  /** seconds since the last chunk stored in IndexedDB */
+  chunkAge: number | null;
+  /** the per-minute values below cover the last full minute */
+  storeErr: number | null;
+  /** stored bitrate, kbit/s */
+  kbps: number | null;
+  cam: CameraState | null;
+  /** camera mute and ended events */
+  camEv: number | null;
+  w: number | null;
+  h: number | null;
+  fps: number | null;
+  /** average live delay of the player, seconds; null while the referee reviews */
+  delay: number | null;
+  /** dropped frames of the player, percent */
+  drop: number | null;
+  /** IndexedDB usage and space left, MB */
+  dbMB: number | null;
+  freeMB: number | null;
+  /** worst main thread delay, ms */
+  lag: number | null;
+  stream: StreamState | null;
+  /** failed YouTube upload attempts */
+  upFail: number | null;
+  /** the PC has a hardware H.264 encoder */
+  hw: boolean | null;
+  /** CPU of all app processes, percent of the whole machine */
+  cpu: number | null;
+  memMB: number | null;
+}
+
 export interface Telemetry {
   cpuPct: number | null;
   perCore: number[] | null;
@@ -39,6 +85,7 @@ export interface Telemetry {
   diskWriteBps: number | null;
   tempC: number | null;
   topProcs: TopProcess[] | null;
+  care: CareStatus | null;
 }
 
 interface PacketBase {
@@ -125,6 +172,37 @@ function parseTelemetry(r: Record<string, unknown>): Telemetry {
     diskWriteBps: num(r.diskWriteBps),
     tempC: num(r.tempC),
     topProcs: topProcs(r.topProcs),
+    care: isRecord(r.care) ? parseCare(r.care) : null,
+  };
+}
+
+export function parseCare(r: Record<string, unknown>): CareStatus | null {
+  const age = num(r.age);
+  if (age === null) return null;
+  return {
+    age,
+    ver: str(r.ver, 16),
+    up: num(r.up),
+    chunkAge: num(r.chunkAge),
+    storeErr: num(r.storeErr),
+    kbps: num(r.kbps),
+    cam: r.cam === "live" || r.cam === "muted" || r.cam === "ended" ? r.cam : null,
+    camEv: num(r.camEv),
+    w: num(r.w),
+    h: num(r.h),
+    fps: num(r.fps),
+    delay: num(r.delay),
+    drop: num(r.drop),
+    dbMB: num(r.dbMB),
+    freeMB: num(r.freeMB),
+    lag: num(r.lag),
+    stream: r.stream === "idle" || r.stream === "connecting" || r.stream === "live"
+      ? r.stream
+      : null,
+    upFail: num(r.upFail),
+    hw: typeof r.hw === "boolean" ? r.hw : null,
+    cpu: num(r.cpu),
+    memMB: num(r.memMB),
   };
 }
 

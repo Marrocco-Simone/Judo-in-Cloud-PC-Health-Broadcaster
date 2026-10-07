@@ -19,16 +19,16 @@ export function exeDir(): string {
   return cut === -1 ? Deno.cwd() : path.slice(0, cut);
 }
 
-export function configDir(): string | null {
+export function configDir(app = APP_DIR): string | null {
   const env = Deno.env;
   if (Deno.build.os === "windows") {
     const base = env.get("APPDATA");
-    return base ? `${base}\\${APP_DIR}` : null;
+    return base ? `${base}\\${app}` : null;
   }
   const xdg = env.get("XDG_CONFIG_HOME");
   const home = env.get("HOME");
   const base = xdg ?? (home ? `${home}/.config` : null);
-  return base ? `${base}/${APP_DIR}` : null;
+  return base ? `${base}/${app}` : null;
 }
 
 export function dataDirs(): string[] {

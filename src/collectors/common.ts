@@ -141,6 +141,7 @@ export function emptyTelemetry(): Telemetry {
     diskWriteBps: null,
     tempC: null,
     topProcs: null,
+    care: null,
   };
 }
 

@@ -20,7 +20,8 @@ avviato su ogni PC:
 
 1. legge il **numero dell'etichetta fisica** del PC da `pc-number.txt` (lo chiede al primo avvio);
 2. trasmette in **broadcast UDP** sulla rete locale l'anagrafica (modello, CPU, RAM, disco, OS) e la
-   telemetria (CPU, RAM, batteria, wifi, rete, disco, temperatura, processi più pesanti);
+   telemetria (CPU, RAM, batteria, wifi, rete, disco, temperatura, processi più pesanti, stato del
+   CARE System);
 3. **riceve** i pacchetti degli altri PC e mostra tutto in una **pagina locale** nel browser.
 
 Nessun server, nessun account, nessuna installazione, nessuna connessione a internet.
@@ -111,16 +112,37 @@ parte in broadcast **e** in unicast verso ogni peer.
 Ogni PC ha la sua pagina; apri quella del PC da cui vuoi controllare. Mostra per ogni macchina:
 numero, host, ruolo e tatami (campi che compili tu, salvati nel browser di quel PC), CPU, RAM,
 batteria con velocità di scarica in punti/ora e autonomia stimata (dopo 5 minuti di campioni), wifi,
-rete ↓/↑, disco R/W, processo più pesante (OBS evidenziato), secondi dall'ultimo beat, stato. Se due
-PC dichiarano lo stesso numero compare un avviso rosso (D8). Un clic sull'intestazione di una
-colonna ordina la tabella per quella colonna; un secondo clic inverte l'ordine. La scelta resta
-salvata nel browser.
+rete ↓/↑, disco R/W, processo più pesante (OBS evidenziato), le tre colonne del CARE System (vedi
+sotto), secondi dall'ultimo beat, stato. Se due PC dichiarano lo stesso numero compare un avviso
+rosso (D8). Un clic sull'intestazione di una colonna ordina la tabella per quella colonna; un
+secondo clic inverte l'ordine. La scelta resta salvata nel browser.
 
 - **Copia specs** copia in appunti un blocco di testo con anagrafica del PC, pronto da incollare
   nella pagina inventario dell'admin di Judo in Cloud (righe vuote per stato care system, porte e
   note). **Copia tutte le specs** fa lo stesso per tutte le macchine.
 - **Scarica CSV sessione** esporta la telemetria che il processo ha in memoria, con ruolo e tatami.
   Il nome del file usa il campo "Gara" (es. `pc-health_Lavis_2026_2026-10-10.csv`).
+
+## Stato del CARE System
+
+L'app Electron del CARE System (1.8.2 o successiva) scrive ogni 10 secondi `care-status.json` nella
+sua cartella dati:
+
+| Sistema | File                                                                          |
+| ------- | ----------------------------------------------------------------------------- |
+| Windows | `%APPDATA%\judo-in-cloud-care-system\care-status.json`                        |
+| Linux   | `~/.config/judo-in-cloud-care-system/care-status.json` (o `$XDG_CONFIG_HOME`) |
+| macOS   | `~/Library/Application Support/judo-in-cloud-care-system/care-status.json`    |
+
+Il broadcaster legge il file a ogni beat e lo aggiunge alla telemetria (campo `care`). Senza file la
+colonna resta vuota: il CARE System non è mai stato aperto nell'app Electron su quel PC (la versione
+nel browser non scrive file). I valori "al minuto" si riferiscono all'ultimo minuto completo.
+
+| Colonna            | Contenuto                                                                                                                                                                                                   |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Care registrazione | bitrate salvato, errori di salvataggio in IndexedDB, stato della camera, risoluzione e fps, eventi mute/ended della camera. **Rosso** se nessun chunk è salvato da più di 10 s o se il file ha più di 120 s |
+| Care player        | ritardo medio dal vivo ("revisione" mentre l'arbitro rivede), frame persi %, ritardo massimo del thread principale                                                                                          |
+| Care app           | CPU (percento dell'intera macchina) e memoria di tutti i processi dell'app, stato dello stream e upload falliti, "no H.264 HW" se il PC non ha l'encoder hardware, spazio libero, versione                  |
 
 ## Registrazione di una gara (RF-8)
 
@@ -134,14 +156,19 @@ pc-health-broadcaster --record=lavis-2026.csv
 ```
 
 Ogni beat ricevuto viene aggiunto al file in blocchi ogni 30 secondi (poche decine di KB l'ora); il
-file riporta anche ruolo e tatami inseriti nella pagina. L'intestazione è scritta solo se il file è
-vuoto, quindi si può riprendere lo stesso file dopo un riavvio. Il percorso compare nel piè di
-pagina. Senza `--record` l'app non scrive nulla su disco (D6): usalo solo sul PC da cui guardi.
+file riporta anche ruolo e tatami inseriti nella pagina e, in fondo, le colonne `care.*` con i campi
+di `care-status.json` (`care.age` e `care.chunkAge` in secondi). L'intestazione è scritta solo se il
+file è vuoto, quindi si può riprendere lo stesso file dopo un riavvio della stessa versione; un file
+scritto da una versione con colonne diverse va sostituito con un file nuovo. Il percorso compare nel
+piè di pagina. Senza `--record` l'app non scrive nulla su disco (D6): usalo solo sul PC da cui
+guardi.
 
 ## Impatto sulla macchina (RN-1)
 
 Il programma non fa polling più veloce del beat e non scrive su disco (solo `pc-number.txt`, una
 volta). Costo per beat:
+
+- **Tutti**: lettura di `care-status.json`, se esiste (un file di meno di 1 KB).
 
 - **Linux**: lettura di `/proc/stat`, `/proc/meminfo`, `/proc/net/dev`, `/proc/diskstats`,
   `/proc/net/wireless`, `/sys/class/power_supply`, `/sys/class/thermal`; un processo `ps`.

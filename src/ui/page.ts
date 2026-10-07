@@ -1,3 +1,5 @@
+import { CARE_CHUNK_ALARM_S, CARE_STALE_S } from "../net/protocol.ts";
+import { CARE_FIELDS } from "../record.ts";
 import { FAVICON_DATA_URI } from "./icon.ts";
 
 export const PAGE = `<!doctype html>
@@ -18,7 +20,7 @@ button,input{font:inherit;color:var(--text);background:#20262f;border:1px solid 
 button{cursor:pointer}button:hover{border-color:var(--accent)}
 input{width:9em}
 main{padding:12px 16px;overflow-x:auto}
-table{border-collapse:collapse;width:100%;min-width:1100px}
+table{border-collapse:collapse;width:100%;min-width:1500px}
 th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
 th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
 th[data-sort]{cursor:pointer;user-select:none}th[data-sort]:hover{color:var(--text)}th.sorted{color:var(--accent)}
@@ -28,6 +30,7 @@ tr.stale td{color:var(--stale)}tr.gone td{color:var(--muted)}
 .live .dot{background:var(--live)}.stale .dot{background:var(--stale)}.gone .dot{background:var(--gone)}
 .obs{color:var(--accent);font-weight:600}
 .dup{color:var(--gone);font-weight:600}
+.bad{color:var(--gone);font-weight:600}.warn{color:var(--stale)}
 .role{width:5em}.tatami{width:3.5em}
 .banner{margin:12px 16px 0;padding:10px 12px;border-radius:6px;background:#3a1c1c;border:1px solid var(--gone)}
 .hidden{display:none}
@@ -54,7 +57,7 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
   <table>
     <thead><tr>
       <th data-sort="number">N.</th><th data-sort="hostname">Host</th><th data-sort="role">Ruolo</th><th data-sort="tatami">Tatami</th><th data-sort="cpu">CPU</th><th data-sort="ram">RAM</th><th data-sort="battery">Batteria</th><th data-sort="wifi">Wi-Fi</th>
-      <th data-sort="net">Rete ↓ / ↑</th><th data-sort="disk">Disco R / W</th><th data-sort="top">Top processo</th><th data-sort="beat">Ultimo beat</th><th data-sort="status">Stato</th><th></th>
+      <th data-sort="net">Rete ↓ / ↑</th><th data-sort="disk">Disco R / W</th><th data-sort="top">Top processo</th><th data-sort="careRec">Care registrazione</th><th data-sort="careLive">Care player</th><th data-sort="careApp">Care app</th><th data-sort="beat">Ultimo beat</th><th data-sort="status">Stato</th><th></th>
     </tr></thead>
     <tbody id="rows"></tbody>
   </table>
@@ -129,6 +132,9 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
       net: t.netRxBps === null || t.netRxBps === undefined ? null : t.netRxBps + (t.netTxBps || 0),
       disk: t.diskReadBps === null || t.diskReadBps === undefined ? null : t.diskReadBps + (t.diskWriteBps || 0),
       top: t.topProcs && t.topProcs[0] ? t.topProcs[0].cpuPct : null,
+      careRec: t.care ? (careDown(t.care) ? 1e9 : t.care.chunkAge) : null,
+      careLive: t.care ? t.care.delay : null,
+      careApp: t.care ? t.care.cpu : null,
       beat: m.sinceLastBeat, status: STATUS_RANK[m.status]
     }[sort.key];
     return v === undefined || v === '' ? null : v;
@@ -171,6 +177,43 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
     var p = t.topProcs[0];
     var cls = /obs/i.test(p.name) ? ' class="obs"' : '';
     return '<span' + cls + '>' + esc(p.name) + '</span> ' + Math.round(p.cpuPct) + '%';
+  }
+  var CARE_CHUNK_ALARM_S = ${CARE_CHUNK_ALARM_S};
+  var CARE_STALE_S = ${CARE_STALE_S};
+  var CARE_FIELDS = ${JSON.stringify(CARE_FIELDS)};
+  function careDown(c) {
+    return c.age > CARE_STALE_S || c.chunkAge === null || c.chunkAge > CARE_CHUNK_ALARM_S;
+  }
+  function flag(cls, text) { return '<span class="' + cls + '">' + text + '</span>'; }
+  function careRec(c) {
+    if (!c) return '—';
+    if (c.age > CARE_STALE_S) return flag('bad', 'non attivo da ' + c.age + ' s');
+    if (c.chunkAge === null) return flag('bad', 'nessun chunk salvato');
+    if (c.chunkAge > CARE_CHUNK_ALARM_S) return flag('bad', 'ferma da ' + c.chunkAge + ' s');
+    var parts = [c.kbps === null ? 'rec' : c.kbps + ' kbps'];
+    if (c.storeErr) parts.push(flag('bad', c.storeErr + ' errori'));
+    if (c.cam && c.cam !== 'live') parts.push(flag('bad', 'camera ' + c.cam));
+    if (c.h) parts.push(c.h + 'p' + (c.fps || ''));
+    if (c.camEv) parts.push(flag('warn', c.camEv + ' eventi camera'));
+    return parts.join(' · ');
+  }
+  function careLive(c) {
+    if (!c || c.age > CARE_STALE_S) return '—';
+    var parts = [c.delay === null ? 'revisione' : (c.delay > 10 ? flag('warn', 'ritardo ' + c.delay + ' s') : 'ritardo ' + c.delay + ' s')];
+    if (c.drop !== null) parts.push(c.drop > 10 ? flag('warn', 'drop ' + c.drop + '%') : 'drop ' + c.drop + '%');
+    if (c.lag !== null) parts.push(c.lag > 500 ? flag('warn', 'lag ' + c.lag + ' ms') : 'lag ' + c.lag + ' ms');
+    return parts.join(' · ');
+  }
+  function careApp(c) {
+    if (!c || c.age > CARE_STALE_S) return '—';
+    var parts = [];
+    if (c.cpu !== null) parts.push('CPU ' + Math.round(c.cpu) + '%');
+    if (c.memMB !== null) parts.push(c.memMB + ' MB');
+    if (c.stream && c.stream !== 'idle') parts.push('stream ' + c.stream + (c.upFail ? ' ' + flag('warn', c.upFail + ' upload falliti') : ''));
+    if (c.hw === false) parts.push(flag('muted', 'no H.264 HW'));
+    if (c.freeMB !== null && c.freeMB < 5000) parts.push(flag('warn', 'liberi ' + c.freeMB + ' MB'));
+    if (c.ver) parts.push(flag('muted', 'v' + esc(c.ver)));
+    return parts.join(' · ');
   }
   function statusText(m) {
     if (m.status === 'live') return 'live';
@@ -238,6 +281,9 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
         '<td class="num">' + bps(t.netRxBps) + ' / ' + bps(t.netTxBps) + '</td>' +
         '<td class="num">' + bps(t.diskReadBps) + ' / ' + bps(t.diskWriteBps) + '</td>' +
         '<td>' + topProc(t) + '</td>' +
+        '<td>' + careRec(t.care) + '</td>' +
+        '<td>' + careLive(t.care) + '</td>' +
+        '<td>' + careApp(t.care) + '</td>' +
         '<td class="num">' + m.sinceLastBeat + ' s</td>' +
         '<td><span class="dot"></span>' + statusText(m) + '</td>' +
         '<td><button data-copy="' + esc(m.key) + '">Copia specs</button></td>' +
@@ -275,13 +321,15 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
 
   el('csv').addEventListener('click', function () {
     fetch('/api/history').then(function (r) { return r.json(); }).then(function (entries) {
-      var head = ['time', 'number', 'hostname', 'role', 'tatami', 'cpuPct', 'ramPct', 'batteryPct', 'power', 'wifiPct', 'wifiDbm', 'netRxBps', 'netTxBps', 'diskReadBps', 'diskWriteBps', 'tempC', 'topProcess', 'topProcessCpuPct'];
+      var head = ['time', 'number', 'hostname', 'role', 'tatami', 'cpuPct', 'ramPct', 'batteryPct', 'power', 'wifiPct', 'wifiDbm', 'netRxBps', 'netTxBps', 'diskReadBps', 'diskWriteBps', 'tempC', 'topProcess', 'topProcessCpuPct']
+        .concat(CARE_FIELDS.map(function (f) { return 'care.' + f; }));
       var lines = [head.join(',')];
       entries.forEach(function (e) {
         var t = e.telemetry;
         var r = roles[e.number] || { role: '', tatami: '' };
         var top = t.topProcs && t.topProcs[0] ? t.topProcs[0] : { name: '', cpuPct: '' };
-        lines.push([new Date(e.t).toISOString(), e.number, e.hostname, r.role, r.tatami, t.cpuPct, t.ramPct, t.batteryPct, t.power, t.wifiPct, t.wifiDbm, t.netRxBps, t.netTxBps, t.diskReadBps, t.diskWriteBps, t.tempC, top.name, top.cpuPct]
+        var care = CARE_FIELDS.map(function (f) { return t.care ? t.care[f] : null; });
+        lines.push([new Date(e.t).toISOString(), e.number, e.hostname, r.role, r.tatami, t.cpuPct, t.ramPct, t.batteryPct, t.power, t.wifiPct, t.wifiDbm, t.netRxBps, t.netTxBps, t.diskReadBps, t.diskWriteBps, t.tempC, top.name, top.cpuPct].concat(care)
           .map(function (v) { return v === null || v === undefined ? '' : /[",\\n]/.test(String(v)) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v); }).join(','));
       });
       var name = (el('session').value.trim() || 'sessione').replace(/[^\\w-]+/g, '_');

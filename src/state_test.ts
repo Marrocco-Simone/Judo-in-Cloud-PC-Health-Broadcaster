@@ -17,6 +17,7 @@ const telemetry: Telemetry = {
   diskWriteBps: null,
   tempC: null,
   topProcs: null,
+  care: null,
 };
 
 let sent = 0;

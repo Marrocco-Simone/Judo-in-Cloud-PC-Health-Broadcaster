@@ -1,5 +1,6 @@
 import denoJson from "../deno.json" with { type: "json" };
 import { HELP, parseArgs } from "./args.ts";
+import { readCareStatus } from "./care.ts";
 import type { Collector } from "./collectors/common.ts";
 import { createDarwinCollector } from "./collectors/darwin.ts";
 import { createLinuxCollector } from "./collectors/linux.ts";
@@ -54,7 +55,7 @@ async function main(): Promise<void> {
     const specs = await collector.specs();
     await collector.telemetry(0);
     await sleep(1_000);
-    const telemetry = await collector.telemetry(1);
+    const telemetry = { ...await collector.telemetry(1), care: await readCareStatus() };
     console.log(JSON.stringify({ version: VERSION, hostname: host, specs, telemetry }, null, 2));
     return;
   }
@@ -138,7 +139,7 @@ async function main(): Promise<void> {
           if (beat > 0) specs = await collector.specs();
           await publish(sender, fleet, { ...base, kind: "specs", specs });
         }
-        const telemetry = await collector.telemetry(beat);
+        const telemetry = { ...await collector.telemetry(beat), care: await readCareStatus() };
         await publish(sender, fleet, { ...base, kind: "telemetry", telemetry });
       } catch (err) {
         console.error("beat saltato:", err instanceof Error ? err.message : err);

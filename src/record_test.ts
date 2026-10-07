@@ -18,7 +18,7 @@ Deno.test("csvLine quotes commas and doubles quotes", () => {
   const line = csvLine(entry, { role: "streaming", tatami: "3" });
   assertEquals(line.split(",").length, CSV_HEADER.split(",").length + 1);
   assertEquals(line.startsWith("2026-10-10T09:00:00.000Z,7,tatami-3,streaming,3,42.5,"), true);
-  assertEquals(line.endsWith(',"obs, ""64""",30'), true);
+  assertEquals(line.includes(',"obs, ""64""",30,'), true);
 });
 
 Deno.test("Recorder appends a header once and then only lines", async () => {
