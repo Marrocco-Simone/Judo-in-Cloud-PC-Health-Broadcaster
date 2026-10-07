@@ -1,5 +1,5 @@
-import { CARE_CHUNK_ALARM_S, CARE_STALE_S } from "../net/protocol.ts";
-import { CARE_FIELDS } from "../record.ts";
+import { CARE_CHUNK_ALARM_S, CARE_FIELDS, CARE_STALE_S } from "../net/protocol.ts";
+import { CSV_HEADER } from "../record.ts";
 import { FAVICON_DATA_URI } from "./icon.ts";
 
 export const PAGE = `<!doctype html>
@@ -133,8 +133,8 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
       disk: t.diskReadBps === null || t.diskReadBps === undefined ? null : t.diskReadBps + (t.diskWriteBps || 0),
       top: t.topProcs && t.topProcs[0] ? t.topProcs[0].cpuPct : null,
       careRec: t.care ? (careDown(t.care) ? 1e9 : t.care.chunkAge) : null,
-      careLive: t.care ? t.care.delay : null,
-      careApp: t.care ? t.care.cpu : null,
+      careLive: t.care && t.care.age <= CARE_STALE_S ? t.care.delay : null,
+      careApp: t.care && t.care.age <= CARE_STALE_S ? t.care.cpu : null,
       beat: m.sinceLastBeat, status: STATUS_RANK[m.status]
     }[sort.key];
     return v === undefined || v === '' ? null : v;
@@ -181,13 +181,20 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
   var CARE_CHUNK_ALARM_S = ${CARE_CHUNK_ALARM_S};
   var CARE_STALE_S = ${CARE_STALE_S};
   var CARE_FIELDS = ${JSON.stringify(CARE_FIELDS)};
+  var CSV_HEADER = ${JSON.stringify(CSV_HEADER)};
   function careDown(c) {
     return c.age > CARE_STALE_S || c.chunkAge === null || c.chunkAge > CARE_CHUNK_ALARM_S;
+  }
+  function ago(s) {
+    if (s < 120) return s + ' s';
+    if (s < 7200) return Math.round(s / 60) + ' min';
+    if (s < 172800) return Math.round(s / 3600) + ' h';
+    return Math.round(s / 86400) + ' g';
   }
   function flag(cls, text) { return '<span class="' + cls + '">' + text + '</span>'; }
   function careRec(c) {
     if (!c) return '—';
-    if (c.age > CARE_STALE_S) return flag('bad', 'non attivo da ' + c.age + ' s');
+    if (c.age > CARE_STALE_S) return flag('bad', 'non attivo da ' + ago(c.age));
     if (c.chunkAge === null) return flag('bad', 'nessun chunk salvato');
     if (c.chunkAge > CARE_CHUNK_ALARM_S) return flag('bad', 'ferma da ' + c.chunkAge + ' s');
     var parts = [c.kbps === null ? 'rec' : c.kbps + ' kbps'];
@@ -321,9 +328,7 @@ pre.copied{position:fixed;bottom:16px;right:16px;background:var(--panel);border:
 
   el('csv').addEventListener('click', function () {
     fetch('/api/history').then(function (r) { return r.json(); }).then(function (entries) {
-      var head = ['time', 'number', 'hostname', 'role', 'tatami', 'cpuPct', 'ramPct', 'batteryPct', 'power', 'wifiPct', 'wifiDbm', 'netRxBps', 'netTxBps', 'diskReadBps', 'diskWriteBps', 'tempC', 'topProcess', 'topProcessCpuPct']
-        .concat(CARE_FIELDS.map(function (f) { return 'care.' + f; }));
-      var lines = [head.join(',')];
+      var lines = [CSV_HEADER];
       entries.forEach(function (e) {
         var t = e.telemetry;
         var r = roles[e.number] || { role: '', tatami: '' };

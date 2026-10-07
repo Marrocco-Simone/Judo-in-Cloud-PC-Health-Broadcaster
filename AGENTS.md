@@ -20,6 +20,8 @@ requirements document lives in the private `laptops/` folder of the owner and is
   randomization and sender. `listen.ts` — UDP socket and receive loop.
 - `src/state.ts` — fleet table, live/stale/gone, duplicate numbers, bounded history, `onEntry`
   listeners. The same beat arrives once per broadcast target; `lastRecordedSentAt` dedupes it.
+- `src/care.ts` — reads `care-status.json`, written by the CARE System Electron app in its userData
+  folder, at every beat. `main.ts` adds it to the telemetry of every OS, outside the collectors.
 - `src/record.ts` — `--record`: appends received beats to a CSV file in 30 s batches. The only disk
   write besides `pc-number.txt`, meant for the control machine.
 - `src/ui/server.ts` — local HTTP on 127.0.0.1. `src/ui/page.ts` — the whole page as a string.
@@ -30,7 +32,8 @@ requirements document lives in the private `laptops/` folder of the owner and is
 - Strict TypeScript, no `any`. Narrow `unknown`.
 - No runtime dependencies. Tests may use `jsr:@std/assert`.
 - Keep packets under `MAX_PACKET_BYTES` (1200). A new telemetry field needs: the `Telemetry`
-  interface, `parseTelemetry`, `emptyTelemetry`, every collector, the page and the CSV header.
+  interface, `parseTelemetry`, `emptyTelemetry`, every collector, the page and the CSV header. A
+  field that does not depend on the OS, like `care`, goes in `main.ts` instead of the collectors.
 - Never transmit credentials, athlete names, file paths or anything the receiver could execute.
   Incoming packets are parsed as telemetry only.
 - Telemetry collection runs once per beat (10 s ± 3 s). Do not add polling faster than the beat and

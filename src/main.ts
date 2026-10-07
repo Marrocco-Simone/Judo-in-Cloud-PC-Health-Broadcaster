@@ -55,7 +55,7 @@ async function main(): Promise<void> {
     const specs = await collector.specs();
     await collector.telemetry(0);
     await sleep(1_000);
-    const telemetry = { ...await collector.telemetry(1), care: await readCareStatus() };
+    const telemetry = await telemetryWithCare(collector, 1);
     console.log(JSON.stringify({ version: VERSION, hostname: host, specs, telemetry }, null, 2));
     return;
   }
@@ -139,7 +139,7 @@ async function main(): Promise<void> {
           if (beat > 0) specs = await collector.specs();
           await publish(sender, fleet, { ...base, kind: "specs", specs });
         }
-        const telemetry = { ...await collector.telemetry(beat), care: await readCareStatus() };
+        const telemetry = await telemetryWithCare(collector, beat);
         await publish(sender, fleet, { ...base, kind: "telemetry", telemetry });
       } catch (err) {
         console.error("beat saltato:", err instanceof Error ? err.message : err);
@@ -153,6 +153,11 @@ async function main(): Promise<void> {
 async function publish(sender: Sender, fleet: Fleet, packet: Packet): Promise<void> {
   fleet.apply(packet, "local");
   await sender.send(encodePacket(packet));
+}
+
+async function telemetryWithCare(collector: Collector, beat: number) {
+  const [telemetry, care] = await Promise.all([collector.telemetry(beat), readCareStatus()]);
+  return { ...telemetry, care };
 }
 
 main().catch((err: unknown) => {

@@ -1,5 +1,5 @@
 import { dataDirs, joinPath } from "./identity.ts";
-import type { CareStatus } from "./net/protocol.ts";
+import { CARE_FIELDS } from "./net/protocol.ts";
 import type { HistoryEntry } from "./state.ts";
 
 export const FLUSH_MS = 30_000;
@@ -8,30 +8,6 @@ export interface RoleEntry {
   role: string;
   tatami: string;
 }
-
-export const CARE_FIELDS = [
-  "age",
-  "ver",
-  "up",
-  "chunkAge",
-  "storeErr",
-  "kbps",
-  "cam",
-  "camEv",
-  "w",
-  "h",
-  "fps",
-  "delay",
-  "drop",
-  "dbMB",
-  "freeMB",
-  "lag",
-  "stream",
-  "upFail",
-  "hw",
-  "cpu",
-  "memMB",
-] as const satisfies readonly (keyof CareStatus)[];
 
 export const CSV_HEADER = [
   "time",

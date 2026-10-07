@@ -70,6 +70,30 @@ export interface CareStatus {
   memMB: number | null;
 }
 
+export const CARE_FIELDS = [
+  "age",
+  "ver",
+  "up",
+  "chunkAge",
+  "storeErr",
+  "kbps",
+  "cam",
+  "camEv",
+  "w",
+  "h",
+  "fps",
+  "delay",
+  "drop",
+  "dbMB",
+  "freeMB",
+  "lag",
+  "stream",
+  "upFail",
+  "hw",
+  "cpu",
+  "memMB",
+] as const satisfies readonly (keyof CareStatus)[];
+
 export interface Telemetry {
   cpuPct: number | null;
   perCore: number[] | null;
